@@ -10,12 +10,22 @@ export function multiCaching<Caches extends Cache[]>(
   caches: Caches,
 ): MultiCache {
   const get = async <T>(key: string) => {
-    for (const cache of caches) {
+    let value: T | undefined;
+    let i = 0;
+    for (; i < caches.length; i++) {
+      //for (const cache of caches) {
       try {
-        const val = await cache.get<T>(key);
-        if (val !== undefined) return val;
+        value = await caches[i].get<T>(key);
+        if (value !== undefined) break;
       } catch (e) {}
     }
+    if (value !== undefined) {
+      await Promise.all(
+        //caches.map((cache) => cache.set(key, value)),
+        caches.slice(0, i).map((cache) => cache.set(key, value)),
+      );
+    }
+    return value;
   };
   const set = async <T>(
     key: string,
